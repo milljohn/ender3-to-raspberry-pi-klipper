@@ -1,13 +1,33 @@
 # ender3-to-raspberry-pi-klipper
-Raspberry Pi Zero hat that supplies power via Ender 3V2 LCD cable for Klipper. NOTE: this seems to only work a Pi Zero, not a Pi 4. Not tested with a Pi 3.
+
+
+
+Raspberry Pi Zero hat that supplies power via Ender 3V2 LCD cable for Klipper. NOTE: this seems to only work a Pi Zero, not a Pi 4. Not tested with a Pi 3 yet.
 
 I made a quick version of this on protoboard, but I'm planning on making a few of these for printers at work and I wanted something a little cleaner and easier to put together.
+
+I originally designed this as a hat, but after thinking about the prototype, it would be better just to make an adapter with crimp connectors.
 
 
 This was originally posted [here](https://www.reddit.com/r/klippers/comments/q5cu20/how_to_connect_creality_v422_board_to_pi_using/).
 
+## The PCB
+
+The latest version is pi_hat_v2, though it is no longer a hat. I generated the cam files in pcb_files.zip. You can see the rendering below.
+
+### Components
+- 1 - 5 position, 2.54mm pitch female (socket) header
+- 1 - 10 position, 2 rows, 2.54mm pitch male (pin) 90 degree header
+
+NOTE: I used a 90 degree header so the drawer would close. It will work with straight headers, but you may have clearance issues.
+
+
+![board top](img/pi_hat_v2_top.png)
+![board bottom](img/pi_hat_v2_bottom.png)
+
+
 ## Klipper Configuration
-If you are just starting out, [this guide](https://www.reddit.com/r/klippers/comments/kj2h5r/stepbystep_guide_for_ender_3_v2_klipper_w_bltouch/) will probably be helpful.
+If you are just starting out, [this guide](https://www.reddit.com/r/klippers/comments/kj2h5r/stepbystep_guide_for_ender_3_v2_klipper_w_bltouch/) will probably be helpful. I've tried to document the steps I took to [setup my printer](#fluidd-pi-configuration)
 
 ![](img/klipper_config.png)
 [Klipper Firmware Configuration](https://i.imgur.com/JYTF8Xj.png)
@@ -38,6 +58,31 @@ These are the steps I took to setup Fluidd Pi
 1. Burn Fluidd Pi [image](https://github.com/fluidd-core/FluiddPi/releases/latest) to SD Card 
 2. Boot the Raspberry Pi
     - Add ssh keys to pi and update `~/.ssh/config`
+      - on host: `ssh-keygen -t rsa -b 4096`, I chose no password and saved the file as 3dprinters
+      - `mv ~/.ssh/3dprinters ~/.ssh/3dprinters.pem`
+      - add the following to ~/.ssh/config
+      ```
+      host ender3.1
+      hostname <raspi-ip-address>
+      identityfile ~/.ssh/3dprinters.pem
+      user pi
+
+      ```
+      - copy the public key to the pi
+      ```
+      sftp ender3.1
+      mkdir -p .ssh
+      put ~/.ssh/3dprinters.pub
+      bye
+
+      ssh ender3.1
+      cd .ssh
+      cat 3dprinters.pub >> authorized_keys
+      exit
+      ```
+      - next time you `ssh ender3.1` it will login without a password.
+
+
     - `cd klipper && make menuconfig && make`
         - the default for usb is as follows
         
@@ -69,6 +114,7 @@ These are the steps I took to setup Fluidd Pi
         - localization options (optional)
             - set to utf-8 and local timezome
     - reboot
+    - run `sudo apt update && sudo apt upgrade -y`
 4. Check the web interface to see if everything is working
     - check logs if something isn't working
 
